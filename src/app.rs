@@ -381,16 +381,14 @@ impl FreatePad {
     }
 
     fn show_split_view(&mut self, ui: &mut egui::Ui) {
-        let available_size = ui.available_size();
+        let available = ui.available_size();
         let min_panel_width = 100.0;
         let divider_width = 4.0;
+        let total_width = available.x - divider_width;
 
-        // Calculate panel widths based on split_ratio
-        let total_width = available_size.x - divider_width;
         let left_width = (total_width * self.split_ratio).max(min_panel_width);
-        let right_width = (total_width * (1.0 - self.split_ratio)).max(min_panel_width);
+        let right_width = total_width - left_width;
 
-        // Adjust if one side is too small
         let (left_width, right_width) = if left_width < min_panel_width {
             (min_panel_width, total_width - min_panel_width)
         } else if right_width < min_panel_width {
@@ -399,40 +397,41 @@ impl FreatePad {
             (left_width, right_width)
         };
 
-        ui.horizontal(|ui| {
-            // Left panel: Editor
-            ui.allocate_ui(egui::vec2(left_width, available_size.y), |ui| {
-                self.editor.show(ui, &mut self.is_modified);
-                self.update_counts();
-            });
+        ui.allocate_ui_with_layout(
+            egui::vec2(available.x, available.y),
+            egui::Layout::left_to_right(egui::Align::TOP),
+            |ui| {
+                ui.allocate_ui(egui::vec2(left_width, available.y), |ui| {
+                    ui.set_min_size(egui::vec2(left_width, available.y));
+                    self.editor.show(ui, &mut self.is_modified);
+                    self.update_counts();
+                });
 
-            // Draggable divider
-            let (rect, response) = ui.allocate_exact_size(
-                egui::vec2(divider_width, available_size.y),
-                egui::Sense::click_and_drag(),
-            );
+                let (rect, response) = ui.allocate_exact_size(
+                    egui::vec2(divider_width, available.y),
+                    egui::Sense::click_and_drag(),
+                );
 
-            // Paint divider
-            let divider_color = if response.hovered() || response.dragged() {
-                ui.visuals().strong_text_color()
-            } else {
-                ui.visuals().weak_text_color()
-            };
-            ui.painter().rect_filled(rect, 0.0, divider_color);
+                let divider_color = if response.hovered() || response.dragged() {
+                    ui.visuals().strong_text_color()
+                } else {
+                    ui.visuals().weak_text_color()
+                };
+                ui.painter().rect_filled(rect, 0.0, divider_color);
 
-            // Handle drag
-            if response.dragged() {
-                let drag_delta = response.drag_delta().x;
-                let total_available = total_width;
-                self.split_ratio = ((self.split_ratio * total_available + drag_delta) / total_available)
-                    .clamp(0.1, 0.9);
-            }
+                if response.dragged() {
+                    let drag_delta = response.drag_delta().x;
+                    self.split_ratio =
+                        ((self.split_ratio * total_width + drag_delta) / total_width)
+                            .clamp(0.1, 0.9);
+                }
 
-            // Right panel: Preview
-            ui.allocate_ui(egui::vec2(right_width, available_size.y), |ui| {
-                self.render_preview(ui);
-            });
-        });
+                ui.allocate_ui(egui::vec2(right_width, available.y), |ui| {
+                    ui.set_min_size(egui::vec2(right_width, available.y));
+                    self.render_preview(ui);
+                });
+            },
+        );
     }
 
     fn render_preview(&mut self, ui: &mut egui::Ui) {
