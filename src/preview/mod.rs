@@ -1,5 +1,6 @@
 mod math;
 mod highlight;
+pub(crate) mod typst_math;
 
 use std::collections::HashMap;
 

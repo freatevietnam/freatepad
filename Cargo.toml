@@ -16,11 +16,10 @@ egui_extras = "0.35.0"
 # Markdown rendering
 egui_commonmark = { version = "0.24.0", default-features = false, features = ["better_syntax_highlighting", "load-images", "embedded_image"] }
 
-# Math rendering (placeholder for now)
-# typst = "0.15.0"
-# typst-svg = "0.15.0"
-# typst-syntax = "0.15.0"
-# typst-world = "0.1.0"
+# Math rendering
+typst = "0.15.0"
+typst-svg = "0.15.0"
+typst-layout = "0.15.0"
 
 # Syntax highlighting
 syntect = { version = "5.3.0", default-features = false, features = ["default-onig", "html"] }
@@ -57,6 +56,7 @@ chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0"
 glob = "0.3"
 open = "5.0"
+base64 = "0.22"
 
 [features]
 default = ["typst-math"]

@@ -436,9 +436,10 @@ impl FreatePad {
 
     fn render_preview(&mut self, ui: &mut egui::Ui) {
         let content = self.editor.get_content();
+        let processed = preprocess_latex(&content);
 
         CommonMarkViewer::new()
-            .show(ui, &mut self.markdown_cache, &content);
+            .show(ui, &mut self.markdown_cache, &processed);
     }
 
     fn handle_keyboard_shortcuts(&mut self, ui: &egui::Ui) {
@@ -657,4 +658,82 @@ fn decode_utf16_be(bytes: &[u8]) -> String {
         .map(|c| u16::from_be_bytes([c[0], c[1]]))
         .collect();
     String::from_utf16_lossy(&chunks)
+}
+
+/// Pre-process markdown content to replace LaTeX blocks with SVG images.
+/// Handles `$$...$$` (display) and `$...$` (inline) math.
+fn preprocess_latex(content: &str) -> String {
+    use crate::preview::typst_math::render_typst_math;
+    use base64::Engine;
+
+    let mut result = String::with_capacity(content.len());
+
+    // Process display math first: $$...$$
+    let mut remaining = content;
+    while let Some(start) = remaining.find("$$") {
+        let after_start = start + 2;
+        if let Some(end) = remaining[after_start..].find("$$") {
+            let math_expr = &remaining[after_start..after_start + end];
+            let trimmed = math_expr.trim();
+
+            if let Some(svg) = render_typst_math(trimmed, true) {
+                let b64 = base64::engine::general_purpose::STANDARD.encode(svg.as_bytes());
+                result.push_str(&remaining[..start]);
+                result.push_str(&format!(
+                    "<div style=\"text-align:center;margin:1em 0;\"><img src=\"data:image/svg+xml;base64,{}\" /></div>",
+                    b64
+                ));
+            } else {
+                result.push_str(&remaining[..after_start + end + 2]);
+            }
+
+            remaining = &remaining[after_start + end + 2..];
+        } else {
+            break;
+        }
+    }
+    result.push_str(remaining);
+
+    // Then process inline math: $...$  (but not $$)
+    let content = result;
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content.as_str();
+
+    while let Some(start) = remaining.find('$') {
+        // Make sure it's not $$
+        let bytes = remaining.as_bytes();
+        if start + 1 < bytes.len() && bytes[start + 1] == b'$' {
+            // Skip $$, it was already handled
+            result.push_str(&remaining[..start + 2]);
+            remaining = &remaining[start + 2..];
+            continue;
+        }
+
+        if let Some(end) = remaining[start + 1..].find('$') {
+            let math_expr = &remaining[start + 1..start + 1 + end];
+            let trimmed = math_expr.trim();
+
+            if !trimmed.is_empty() && !trimmed.contains('\n') {
+                if let Some(svg) = render_typst_math(trimmed, false) {
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(svg.as_bytes());
+                    result.push_str(&remaining[..start]);
+                    result.push_str(&format!(
+                        "<img src=\"data:image/svg+xml;base64,{}\" style=\"vertical-align:middle;\" />",
+                        b64
+                    ));
+                } else {
+                    result.push_str(&remaining[..start + 1 + end + 1]);
+                }
+            } else {
+                result.push_str(&remaining[..start + 1 + end + 1]);
+            }
+
+            remaining = &remaining[start + 1 + end + 1..];
+        } else {
+            break;
+        }
+    }
+    result.push_str(remaining);
+
+    result
 }
