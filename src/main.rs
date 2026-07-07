@@ -66,7 +66,7 @@ fn windows_message_box(msg: &str) {
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
-    let title: Vec<u16> = "FreatePad"
+    let title: Vec<u16> = OsStr::new("FreatePad")
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
