@@ -1,0 +1,75 @@
+[package]
+name = "freatepad"
+version = "0.1.0"
+edition = "2021"
+authors = ["FreateVietnam"]
+description = "A lightweight cross-platform Markdown editor"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/freatevietnam/freatepad"
+
+[dependencies]
+# GUI
+eframe = { version = "0.35.0", default-features = false, features = ["default_fonts", "persistence", "wayland", "x11", "wgpu"] }
+egui = "0.35.0"
+egui_extras = "0.35.0"
+
+# Markdown rendering
+egui_commonmark = { version = "0.24.0", default-features = false, features = ["better_syntax_highlighting", "load-images", "embedded_image"] }
+
+# Math rendering (placeholder for now)
+# typst = "0.15.0"
+# typst-svg = "0.15.0"
+# typst-syntax = "0.15.0"
+# typst-world = "0.1.0"
+
+# Syntax highlighting
+syntect = { version = "5.3.0", default-features = false, features = ["default-onig", "html"] }
+
+# File dialogs
+rfd = "0.17.2"
+
+# Clipboard
+arboard = "3.6.1"
+
+# File watching
+notify = "9.0.0-rc.4"
+
+# Config and storage
+dirs = "6.0.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "1.1"
+
+# Async
+tokio = { version = "1.52", features = ["rt-multi-thread", "macros", "time"] }
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Image handling for SVG
+resvg = "0.47.0"
+usvg = "0.47.0"
+tiny-skia = "0.12.0"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2.0"
+glob = "0.3"
+open = "5.0"
+
+[features]
+default = ["typst-math"]
+typst-math = []
+webview-math = ["dep:wry"]
+
+[dependencies.wry]
+version = "0.55.1"
+optional = true
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
